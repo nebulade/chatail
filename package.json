@@ -18,6 +18,8 @@
   "homepage": "https://github.com/nebulade/chatail",
   "dependencies": {
     "debug": "^1.0.3",
+    "ejs": "^1.0.0",
+    "express": "^4.5.1",
     "imap": "^0.8.12"
   }
 }

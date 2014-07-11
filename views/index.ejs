@@ -1,0 +1,53 @@
+<% include header %>
+
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Chatail</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+
+            <div class="container">
+<%
+for (var i = 0; i < messages.length; i++) {
+    if (messages[i].from === owner) {
+%>
+                <div class="row">
+                    <div class="col-md-3"></div>
+                    <div class="col-md-7 alert alert-success"><%- messages[i].body.replace(/\n/g, '<br/>') %></div>
+                    <div class="col-md-2"><h3>Me</h3></div>
+                </div>
+<%
+    } else {
+%>
+                <div class="row">
+                    <div class="col-md-4"><h4><%= messages[i].from %></h4></div>
+                    <div class="col-md-7 alert alert-info"><%- messages[i].body.replace(/\n/g, '<br/>') %></div>
+                    <div class="col-md-1"></div>
+                </div>
+<%
+    }
+}
+%>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="input-group">
+                <input type="text" class="form-control">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button">Send</button>
+                </span>
+            </div>
+        </div>
+    </div>
+
+<div>
+
+<% include footer %>

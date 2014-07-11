@@ -2,108 +2,39 @@
 
 'use strict';
 
-var debug = require('debug')('server'),
-    Imap = require('imap');
+var express = require('express'),
+    path = require('path'),
+    http = require('http'),
+    Mail = require('./mail.js');
 
-var imap = new Imap(require('./config.json'));
+var mail = new Mail(require('./config.json'));
+mail.on('error', function (error) {
+    console.log('ERROR:', error);
+});
+mail.start();
 
-var messages = {};
+var app = express();
 
-function openInbox(cb) {
-    imap.openBox('INBOX', true, cb);
-}
+app.set('views', path.join(__dirname, 'views'));
+app.set('view options', { layout: true, debug: true });
+app.set('view engine', 'ejs');
 
-function printNewMessage(seqno) {
-    console.log('');
-    console.log('From:', messages[seqno].from);
-    console.log('To:', messages[seqno].to);
-    console.log('Date:', messages[seqno].date);
-    console.log('Subject:', messages[seqno].subject);
-    console.log('-------------------------------------------------------------------------------------');
-    console.log(messages[seqno].body);
-    console.log('');
-}
+var router = new express.Router();
+app.use(router);
 
-function searchChatail(callback) {
-    imap.search([
-        ['HEADER', 'SUBJECT', '[chatail]']
-    ], function (err, results) {
-        if (err) throw err;
-        var f = imap.fetch(results, {
-            bodies: ['HEADER.FIELDS (TO)', 'HEADER.FIELDS (FROM)', 'HEADER.FIELDS (SUBJECT)', 'TEXT']
-        });
-        f.on('message', function (msg, seqno) {
-            if (messages[seqno]) return;
-
-            var subject = null;
-            var body = null;
-            var from = null;
-            var to = null;
-            var date = null;
-
-            msg.on('body', function (stream, info) {
-                var buffer = '';
-
-                stream.on('data', function (chunk) {
-                    buffer += chunk.toString('utf8');
-                });
-
-                stream.once('end', function () {
-                    if (info.which === 'TEXT') {
-                        body = buffer;
-                    } else if (info.which === 'HEADER.FIELDS (SUBJECT)') {
-                        subject = Imap.parseHeader(buffer).subject;
-                    } else if (info.which === 'HEADER.FIELDS (FROM)') {
-                        from = Imap.parseHeader(buffer).from;
-                    } else if (info.which === 'HEADER.FIELDS (TO)') {
-                        to = Imap.parseHeader(buffer).to;
-                    }
-                });
-            });
-            msg.once('attributes', function (attrs) {
-                date = attrs.date;
-            });
-            msg.once('end', function () {
-                messages[seqno] = {
-                    from: from[0],
-                    to: to,
-                    date: date,
-                    subject: subject[0],
-                    body: body.replace(/=0A=\r/g, '')
-                };
-
-                printNewMessage(seqno);
-            });
-        });
-        f.once('error', function (err) {
-            console.log('Fetch error: ' + err);
-        });
-        f.once('end', function () {
-            callback();
-            // imap.end();
-        });
-    });
-}
-
-imap.once('ready', function () {
-    openInbox(function (err, box) {
-        if (err) throw err;
-
-        function run() {
-            searchChatail(function () {
-                setTimeout(run, 1000);
-            });
-        }
-
-        run();
+router.get('*', function (req, res) {
+    res.render('index', {
+        messages: mail.getByDate(),
+        owner: 'Johannes Zellner <johannes@nebulon.de>'
     });
 });
 
-imap.once('error', function (err) {
-    console.log(err);
-});
-imap.once('end', function () {
-    console.log('Connection ended');
-});
+var server = http.createServer(app);
+server.listen(3000, function (error) {
+    if (error) {
+        console.log('Unable to start server.', error);
+        process.exit(1);
+    }
 
-imap.connect();
+    console.log('Server running');
+});
