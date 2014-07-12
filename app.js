@@ -41,7 +41,7 @@ app.use(express.static(__dirname + '/views'));
 app.use(router);
 
 router.post('/api/send', function (req, res) {
-    mail.send(config.me, req.body.to, config.me, 'foo', req.body.message);
+    mail.send(config.me, req.body.to, config.me, 'Chat', req.body.message);
     res.send(200, {})
 });
 
