@@ -43,6 +43,45 @@ Mail.prototype.getByDate = function () {
     return tmp;
 };
 
+Mail.prototype.parseMultipart = function (buffer, boundary) {
+    var parts = buffer.split('\r\n');
+
+    var content = [];
+    var found = false;
+    var headers = true;
+
+    for (var i = 0; i < parts.length; ++i) {
+        if (parts[i].indexOf('--' + boundary) === 0) {
+            debug('found boundary');
+
+            if (found) break;
+
+            content = [];
+            headers = true;
+            continue;
+        }
+
+        if (headers && parts[i].indexOf('Content-Type: text/plain; charset=UTF-8') === 0) {
+            debug('found content type text');
+
+            found = true;
+            continue;
+        }
+
+        if (headers && parts[i] === '') {
+            debug('skip empty line after headers');
+            headers = false;
+            continue;
+        }
+
+        debug('add line ', parts[i]);
+
+        content.push(parts[i]);
+    }
+
+    return content.join('\n');
+};
+
 Mail.prototype.refresh = function (callback) {
     var that = this;
 
@@ -52,7 +91,7 @@ Mail.prototype.refresh = function (callback) {
         if (error) return that.emit('error', error);
 
         var f = that.imap.fetch(results, {
-            bodies: ['HEADER.FIELDS (TO)', 'HEADER.FIELDS (FROM)', 'HEADER.FIELDS (SUBJECT)', 'TEXT']
+            bodies: ['HEADER.FIELDS (TO)', 'HEADER.FIELDS (FROM)', 'HEADER.FIELDS (SUBJECT)', 'HEADER.FIELDS (CONTENT-TYPE)', 'TEXT']
         });
 
         f.on('message', function (msg, seqno) {
@@ -63,6 +102,7 @@ Mail.prototype.refresh = function (callback) {
             var from = null;
             var to = null;
             var date = null;
+            var multipartBoundry = null;
 
             msg.on('body', function (stream, info) {
                 var buffer = '';
@@ -80,6 +120,11 @@ Mail.prototype.refresh = function (callback) {
                         from = Imap.parseHeader(buffer).from;
                     } else if (info.which === 'HEADER.FIELDS (TO)') {
                         to = Imap.parseHeader(buffer).to;
+                    } else if (info.which === 'HEADER.FIELDS (CONTENT-TYPE)') {
+                        if (buffer.indexOf('multipart/alternative') !== -1) {
+                            multipartBoundry = buffer.split('boundary=')[1].replace(/\r\n/g, '');
+                            debug('Multipart found with boundry', multipartBoundry);
+                        }
                     }
                 });
             });
@@ -87,6 +132,11 @@ Mail.prototype.refresh = function (callback) {
                 date = attrs.date;
             });
             msg.once('end', function () {
+                if (multipartBoundry) {
+                    debug('Handle multipart message');
+                    body = that.parseMultipart(body, multipartBoundry);
+                }
+
                 that.messages[seqno] = {
                     from: from[0],
                     to: to,
