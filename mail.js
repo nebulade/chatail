@@ -5,17 +5,22 @@
 var debug = require('debug')('server'),
     util = require('util'),
     Imap = require('imap'),
+    nodemailer = require('nodemailer'),
     EventEmitter = require('events').EventEmitter;
 
 exports = module.exports = Mail;
 
-function Mail(config) {
+function Mail(imapConfig, smtpConfig) {
     EventEmitter.call(this);
 
     var that = this;
 
+    this.imapConfig = imapConfig;
+    this.smtpConfig = smtpConfig;
+
+    this.messages = {};
     this.timer = null;
-    this.imap = new Imap(config);
+    this.imap = new Imap(imapConfig);
 
     this.imap.once('error', function (error) {
         that.emit('error', error);
@@ -25,7 +30,7 @@ function Mail(config) {
         console.log('Connection ended');
     });
 
-    this.messages = {};
+    this.smtp = null;
 }
 util.inherits(Mail, EventEmitter);
 
@@ -80,6 +85,26 @@ Mail.prototype.parseMultipart = function (buffer, boundary) {
     }
 
     return content.join('\n');
+};
+
+Mail.prototype.send = function (from, to, cc, subject, message) {
+
+    debug('send: ', from, to, subject, message);
+
+    if (subject.indexOf('[chatail]') === -1) subject = '[chatail] ' + subject.trim();
+
+    var mailOptions = {
+        from: from,
+        to: to,
+        cc: cc,
+        subject: subject,
+        text: message
+    }
+
+    this.smtp.sendMail(mailOptions, function (error, result) {
+        if (error) console.error('Failed to send message:', error);
+        debug('Message successfully sent.');
+    });
 };
 
 Mail.prototype.refresh = function (callback) {
@@ -162,6 +187,8 @@ Mail.prototype.start = function () {
 
     var that = this;
 
+    this.smtp = nodemailer.createTransport('SMTP', this.smtpConfig);
+
     this.imap.connect();
 
     this.imap.once('ready', function () {
@@ -183,4 +210,5 @@ Mail.prototype.stop = function () {
     if (this.timer) clearTimeout(this.timer);
 
     this.imap.end();
+    this.smtp.close();
 };
