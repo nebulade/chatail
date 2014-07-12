@@ -10,17 +10,18 @@ var debug = require('debug')('server'),
 
 exports = module.exports = Mail;
 
-function Mail(imapConfig, smtpConfig) {
+function Mail(config) {
     EventEmitter.call(this);
 
     var that = this;
 
-    this.imapConfig = imapConfig;
-    this.smtpConfig = smtpConfig;
+    this.config = config;
+    this.imapConfig = config.imap;
+    this.smtpConfig = config.smtp;
 
     this.messages = {};
     this.timer = null;
-    this.imap = new Imap(imapConfig);
+    this.imap = new Imap(config.imap);
 
     this.imap.once('error', function (error) {
         that.emit('error', error);
@@ -163,11 +164,12 @@ Mail.prototype.refresh = function (callback) {
                 }
 
                 that.messages[seqno] = {
+                    me: (from[0].indexOf(that.config.me) !== -1),
                     from: from[0],
                     to: to,
                     date: date,
                     subject: subject[0],
-                    body: body.replace(/=0A=\r/g, '')
+                    body: that.decode(body)
                 };
 
                 console.log('New Message:', that.messages[seqno]);
@@ -181,6 +183,13 @@ Mail.prototype.refresh = function (callback) {
             callback();
         });
     });
+};
+
+Mail.prototype.decode = function (body) {
+    var tmp = '';
+    tmp = body.replace(/=0A=\r/g, '');
+    tmp = body.replace(/=3F/g, '?');
+    return tmp;
 };
 
 Mail.prototype.start = function () {

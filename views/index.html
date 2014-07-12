@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chatail</title>
+
+    <!-- angularjs scripts -->
+    <script src="3rdparty/angular.js"></script>
+    <script src="3rdparty/angular-loader.js"></script>
+    <script src="3rdparty/angular-sanitize.js"></script>
+    <script src="3rdparty/angular-route.js"></script>
+    <script src="3rdparty/angular-base64.min.js"></script>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="3rdparty/bootstrap.min.css"  rel="stylesheet" type="text/css">
+
+    <script src="index.js"></script>
+
+    <style>
+
+        html, body {
+            height: 100%;
+        }
+
+        .bottom-space {
+            padding-bottom: 50px;
+        }
+
+    </style>
+</head>
+
+<body ng-app="Chatail" ng-controller="MainController">>
+
+<div class="navbar navbar-fixed-top">
+    <h1>Chatail</h1>
+</div>
+
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="container bottom-space">
+                <div  ng-repeat="msg in data.messages">
+                    <div class="row" ng-show="msg.me">
+                        <div class="col-md-3"></div>
+                        <div class="col-md-7 alert alert-success" ng-bind-html="msg.body"></div>
+                        <div class="col-md-2"><h3>Me</h3></div>
+                    </div>
+                    <div class="row" ng-hide="msg.me">
+                        <div class="col-md-4"><h4>{{msg.from}}</h4></div>
+                        <div class="col-md-7 alert alert-info"><div ng-bind-html="msg.body"></div></div>
+                        <div class="col-md-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="navbar navbar-fixed-bottom">
+    <form role="form" ng-submit="send()">
+        <div class="form-group" style="padding: 10px; padding-left: 10%; padding-right: 10%;">
+            <div class="col-sm-3">
+                <input type="text" class="form-control" name="to" ng-model="to" value="johannes.zellner@nokia.com" placeholder="email@to.chat">
+            </div>
+            <div class="col-sm-9">
+                <div class="input-group">
+                    <input type="text" class="form-control" ng-model="message" name="message" autofocus="true">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="submit">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    window.scrollTo(0,document.body.scrollHeight);
+</script>
+
+</body>
+</html>

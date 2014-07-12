@@ -6,6 +6,7 @@ var express = require('express'),
     path = require('path'),
     http = require('http'),
     urlencoded = require('body-parser').urlencoded,
+    json = require('body-parser').json,
     Mail = require('./mail.js');
 
 var config = require('./config.json');
@@ -25,7 +26,7 @@ if (!config.smtp) {
     process.exit(1);
 }
 
-var mail = new Mail(config.imap, config.smtp);
+var mail = new Mail(config);
 mail.on('error', function (error) {
     console.log('ERROR:', error);
 });
@@ -33,24 +34,19 @@ mail.start();
 
 var app = express();
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view options', { layout: true, debug: true });
-app.set('view engine', 'ejs');
-
 var router = new express.Router();
 app.use(urlencoded());
+app.use(json());
+app.use(express.static(__dirname + '/views'));
 app.use(router);
 
-router.post('/send', function (req, res) {
+router.post('/api/send', function (req, res) {
     mail.send(config.me, req.body.to, config.me, 'foo', req.body.message);
-    res.redirect('/');
+    res.send(200, {})
 });
 
-router.get('*', function (req, res) {
-    res.render('index', {
-        messages: mail.getByDate(),
-        owner: config.me
-    });
+router.get('/api/messages', function (req, res) {
+    res.send(200, { messages: mail.getByDate() });
 });
 
 var server = http.createServer(app);
