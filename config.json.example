@@ -1,0 +1,21 @@
+{
+    "me": "johannes@nebulon.de",
+    "imap": {
+        "user": "webmaster@nebulon.de",
+        "password": "",
+        "host": "sslmailpool.ispgateway.de",
+        "port": 993,
+        "tls": true,
+        "box": "INBOX.chatail"
+    },
+    "smtp": {
+        "host": "smtprelaypool.ispgateway.de",
+        "secureConnection": true,
+        "port": 465,
+        "authMethod": "PLAIN",
+        "auth": {
+            "user": "webmaster@nebulon.de",
+            "pass": ""
+        }
+    }
+}

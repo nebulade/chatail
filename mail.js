@@ -226,7 +226,7 @@ Mail.prototype.start = function () {
     this.imap.connect();
 
     this.imap.once('ready', function () {
-        that.imap.openBox('INBOX', true, function (error, box) {
+        that.imap.openBox(that.config.imap.box ? that.config.imap.box : 'INBOX', true, function (error, box) {
             if (error) return that.emit('error', error);
 
             function run() {
