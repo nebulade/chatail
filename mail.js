@@ -226,6 +226,11 @@ Mail.prototype.start = function () {
     this.imap.connect();
 
     this.imap.once('ready', function () {
+        that.imap.getBoxes(function (error, result) {
+            if (error) return console.log('Failed to list boxes.', error);
+            console.log('Boxes: ', result);
+        });
+
         that.imap.openBox(that.config.imap.box ? that.config.imap.box : 'INBOX', true, function (error, box) {
             if (error) return that.emit('error', error);
 
