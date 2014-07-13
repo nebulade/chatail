@@ -13,24 +13,14 @@ exports = module.exports = Mail;
 function Mail(config) {
     EventEmitter.call(this);
 
-    var that = this;
-
     this.config = config;
     this.imapConfig = config.imap;
     this.smtpConfig = config.smtp;
 
     this.messages = {};
+    this.contacts = {};
     this.timer = null;
-    this.imap = new Imap(config.imap);
-
-    this.imap.once('error', function (error) {
-        that.emit('error', error);
-    });
-
-    this.imap.once('end', function () {
-        console.log('Connection ended');
-    });
-
+    this.imap = null;
     this.smtp = null;
 }
 util.inherits(Mail, EventEmitter);
@@ -49,6 +39,16 @@ Mail.prototype.getByDate = function () {
     return tmp;
 };
 
+Mail.prototype.getContacts = function () {
+    var tmp = [];
+
+    for (var msg in this.contacts) {
+        tmp.push(this.contacts[msg]);
+    }
+
+    return tmp;
+};
+
 Mail.prototype.parseMultipart = function (buffer, boundary) {
     var parts = buffer.split('\r\n');
 
@@ -58,29 +58,21 @@ Mail.prototype.parseMultipart = function (buffer, boundary) {
 
     for (var i = 0; i < parts.length; ++i) {
         if (parts[i].indexOf('--' + boundary) === 0) {
-            debug('found boundary');
-
             if (found) break;
-
             content = [];
             headers = true;
             continue;
         }
 
         if (headers && parts[i].indexOf('Content-Type: text/plain; charset=UTF-8') === 0) {
-            debug('found content type text');
-
             found = true;
             continue;
         }
 
         if (headers && parts[i] === '') {
-            debug('skip empty line after headers');
             headers = false;
             continue;
         }
-
-        debug('add line ', parts[i]);
 
         content.push(parts[i]);
     }
@@ -88,7 +80,7 @@ Mail.prototype.parseMultipart = function (buffer, boundary) {
     return content.join('\n');
 };
 
-Mail.prototype.send = function (from, to, cc, subject, message) {
+Mail.prototype.send = function (from, to, cc, subject, message, callback) {
 
     debug('send: ', from, to, subject, message);
 
@@ -100,16 +92,26 @@ Mail.prototype.send = function (from, to, cc, subject, message) {
         cc: cc,
         subject: subject,
         text: message
-    }
+    };
 
     this.smtp.sendMail(mailOptions, function (error, result) {
         if (error) console.error('Failed to send message:', error);
         debug('Message successfully sent.');
+
+        callback(error);
     });
+};
+
+Mail.prototype.extractEmail = function (data) {
+    var tmp = data.match(/<.*@.*\..*>/g);
+    if (tmp === null || !tmp[0]) return data;
+    return tmp[0].slice(1, -1);
 };
 
 Mail.prototype.refresh = function (callback) {
     var that = this;
+
+    debug('refresh: begin');
 
     this.imap.search([
         ['HEADER', 'SUBJECT', '[chatail]']
@@ -164,6 +166,7 @@ Mail.prototype.refresh = function (callback) {
                 }
 
                 that.messages[seqno] = {
+                    seqno: seqno,
                     me: (from[0].indexOf(that.config.me) !== -1),
                     from: from[0],
                     to: to,
@@ -172,14 +175,24 @@ Mail.prototype.refresh = function (callback) {
                     body: that.decode(body)
                 };
 
-                console.log('New Message:', that.messages[seqno]);
+                var email = that.extractEmail(from[0]);
+                if (!that.contacts[email]) {
+                    that.contacts[email] = { email: email, name: from[0] };
+                } else {
+                    if (that.contacts[email].length <= from[0]) {
+                        that.contacts[email].name = from[0];
+                    }
+                }
+
+                debug('New Message:' + seqno);
             });
         });
         f.once('error', function (error) {
-            console.log('Fetch error: ' + error);
+            debug('refresh: search error.', error);
             that.emit('error', error);
         });
         f.once('end', function () {
+            debug('refresh: end');
             callback();
         });
     });
@@ -193,8 +206,20 @@ Mail.prototype.decode = function (body) {
 };
 
 Mail.prototype.start = function () {
+    debug('start');
 
     var that = this;
+
+    this.imap = new Imap(this.config.imap);
+
+    this.imap.once('error', function (error) {
+        debug('imap error', error);
+        that.emit('error', error);
+    });
+
+    this.imap.once('end', function () {
+        console.log('Connection ended');
+    });
 
     this.smtp = nodemailer.createTransport('SMTP', this.smtpConfig);
 
@@ -216,6 +241,8 @@ Mail.prototype.start = function () {
 };
 
 Mail.prototype.stop = function () {
+    debug('stop');
+
     if (this.timer) clearTimeout(this.timer);
 
     this.imap.end();

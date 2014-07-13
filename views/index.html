@@ -29,10 +29,16 @@
     </style>
 </head>
 
-<body ng-app="Chatail" ng-controller="MainController">>
+<body ng-app="Chatail" ng-controller="MainController">
 
 <div class="navbar navbar-fixed-top">
     <h1>Chatail</h1>
+
+    <ul>
+        <li ng-repeat="contact in data.contacts">
+            {{contact.name}}
+        </li>
+    </ul>
 </div>
 
 <div class="container">

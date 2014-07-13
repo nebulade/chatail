@@ -29,7 +29,9 @@ if (!config.smtp) {
 var mail = new Mail(config);
 mail.on('error', function (error) {
     console.log('ERROR:', error);
+    mail.start();
 });
+
 mail.start();
 
 var app = express();
@@ -41,12 +43,18 @@ app.use(express.static(__dirname + '/views'));
 app.use(router);
 
 router.post('/api/send', function (req, res) {
-    mail.send(config.me, req.body.to, config.me, 'Chat', req.body.message);
-    res.send(200, {})
+    mail.send(config.me, req.body.to, config.me, 'Chat', req.body.message, function (error) {
+        if (error) return res.send(500, 'Unable to send message');
+        res.send(200, {});
+    });
 });
 
 router.get('/api/messages', function (req, res) {
     res.send(200, { messages: mail.getByDate() });
+});
+
+router.get('/api/contacts', function (req, res) {
+    res.send(200, { contacts: mail.getContacts() });
 });
 
 var server = http.createServer(app);

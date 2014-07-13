@@ -1,6 +1,7 @@
 'use strict';
 
 /* global angular:false */
+/* jslint browser:true */
 
 // create main application module
 var app = angular.module('Chatail', ['ngSanitize']);
@@ -8,6 +9,7 @@ var app = angular.module('Chatail', ['ngSanitize']);
 var MainController = function ($scope, $http) {
     $scope.data = {};
     $scope.data.messages = [];
+    $scope.data.contacts = [];
 
     $scope.message = '';
     $scope.to = '';
@@ -32,30 +34,57 @@ var MainController = function ($scope, $http) {
         });
     };
 
-    function refresh() {
+    function existsInArray(message, key, set) {
+        var found = false;
+
+        set.forEach(function (msg) {
+            if (msg[key] === message[key]) found = true;
+        });
+
+        return found;
+    }
+
+    function refreshMessages() {
         $http.get('/api/messages').success(function(data, status, headers, config) {
             var count = $scope.data.messages.length;
 
-            $scope.data.messages = [];
             data.messages.forEach(function (message) {
                 message.body = message.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                 message.body = '<div>' + message.body.replace(/\n/g, '<br/>') + '</div>';
-                $scope.data.messages.push(message);
+
+                if (!existsInArray(message, 'seqno', $scope.data.messages)) {
+                    $scope.data.messages.push(message);
+                }
             });
 
             if (count !== $scope.data.messages.length) {
-                console.log('scroll')
                 setTimeout(function () {
                     window.scrollTo(0,document.body.scrollHeight);
                 }, 250);
             }
 
-            setTimeout(refresh, 1000);
+            setTimeout(refreshMessages, 1000);
         }).error(function(data, status, headers, config) {
             console.error('Unable to get messages');
-            setTimeout(refresh, 1000);
+            setTimeout(refreshMessages, 1000);
         });
     }
 
-    refresh();
+    function refreshContacts() {
+        $http.get('/api/contacts').success(function(data, status, headers, config) {
+            data.contacts.forEach(function (contact) {
+                if (!existsInArray(contact, 'email', $scope.data.contacts)) {
+                    $scope.data.contacts.push(contact);
+                }
+            });
+
+            setTimeout(refreshContacts, 5000);
+        }).error(function(data, status, headers, config) {
+            console.error('Unable to get messages');
+            setTimeout(refreshContacts, 5000);
+        });
+    }
+
+    refreshMessages();
+    refreshContacts();
 };
