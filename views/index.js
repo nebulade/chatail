@@ -28,7 +28,6 @@ var MainController = function ($scope, $http) {
         $http.post('/api/send', obj).success(function(data, status, headers, config) {
             console.log('successfully sent message');
             $scope.message = '';
-            refresh();
         }).error(function(data, status, headers, config) {
             console.error('Unable to send message', status, data);
         });
