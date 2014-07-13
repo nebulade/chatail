@@ -35,7 +35,7 @@
     <h1>Chatail</h1>
 
     <ul>
-        <li ng-repeat="contact in data.contacts">
+        <li ng-repeat="contact in data.contacts" ng-click="setRecepient(contact)" style="cursor: pointer;">
             {{contact.name}}
         </li>
     </ul>

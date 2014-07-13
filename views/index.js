@@ -34,6 +34,10 @@ var MainController = function ($scope, $http) {
         });
     };
 
+    $scope.setRecepient = function (contact) {
+        $scope.to = contact.email;
+    };
+
     function existsInArray(message, key, set) {
         var found = false;
 
