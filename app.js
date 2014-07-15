@@ -43,7 +43,7 @@ app.use(express.static(__dirname + '/views'));
 app.use(router);
 
 router.post('/api/send', function (req, res) {
-    mail.send(config.me, req.body.to, config.me, 'Chat', req.body.message, function (error) {
+    mail.send(config.me, req.body.to, null, 'Chat', req.body.message, function (error) {
         if (error) return res.send(500, 'Unable to send message');
         res.send(200, {});
     });

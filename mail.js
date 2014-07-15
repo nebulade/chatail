@@ -5,6 +5,7 @@
 var debug = require('debug')('server'),
     util = require('util'),
     Imap = require('imap'),
+    async = require('async'),
     nodemailer = require('nodemailer'),
     EventEmitter = require('events').EventEmitter;
 
@@ -231,17 +232,35 @@ Mail.prototype.start = function () {
             console.log('Boxes: ', result);
         });
 
-        that.imap.openBox(that.config.imap.box ? that.config.imap.box : 'INBOX', true, function (error, box) {
-            if (error) return that.emit('error', error);
+        var boxes = that.config.imap.box.split(',');
+        if (!boxes.length) boxes.push('INBOX');
 
-            function run() {
-                that.refresh(function () {
-                    that.timer = setTimeout(run, 1000);
+        function run() {
+            async.eachSeries(boxes, function (box, callback) {
+                debug('Fetch box ' + box);
+                that.imap.openBox(box, true, function (error, box) {
+                    if (error) {
+                        that.emit('error', error);
+                        return callback(null);
+                    }
+
+                    that.refresh(function () {
+                        if (error) {
+                            that.emit('error', error);
+                            return callback(null);
+                        }
+
+                        callback(null);
+                    });
+
                 });
-            }
+            }, function (error) {
+                debug('All done');
+                that.timer = setTimeout(run, 1000);
+            });
+        }
 
-            run();
-        });
+        run();
     });
 };
 
