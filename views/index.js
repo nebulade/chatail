@@ -14,6 +14,10 @@ var MainController = function ($scope, $http) {
     $scope.message = '';
     $scope.to = '';
 
+    $scope.isSetToSend = function (contact) {
+        return ($scope.to.indexOf(contact.email) !== -1);
+    };
+
     $scope.send = function () {
         if (!$scope.to || !$scope.message) {
             console.error('No content to send');
@@ -21,7 +25,7 @@ var MainController = function ($scope, $http) {
         }
 
         var obj = {
-            to: $scope.to,
+            to: $scope.to.split(';'),
             message: $scope.message
         };
 
@@ -33,8 +37,19 @@ var MainController = function ($scope, $http) {
         });
     };
 
-    $scope.setRecepient = function (contact) {
-        $scope.to = contact.email;
+    $scope.toggleRecepient = function (contact) {
+        if ($scope.to.length === 0) {
+            $scope.to = contact.email;
+            return;
+        }
+
+        var emails = $scope.to.split(';');
+        var index = emails.indexOf(contact.email);
+
+        if (index === -1) emails.push(contact.email);
+        else emails.splice(index, 1);
+
+        $scope.to = emails.join(';');
     };
 
     function existsInArray(message, key, set) {

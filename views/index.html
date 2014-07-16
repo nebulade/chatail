@@ -19,6 +19,9 @@
     <script src="3rdparty/bootstrap.min.js"></script>
     <link href="3rdparty/bootstrap.min.css"  rel="stylesheet" type="text/css">
 
+    <!-- glyphicons -->
+    <link href="3rdparty/bootstrap-glyphicons.css" rel="stylesheet">
+
     <script src="index.js"></script>
 
     <style>
@@ -73,7 +76,12 @@
                                 To<span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
-                                <li role="presentation" ng-repeat="contact in data.contacts" ng-click="setRecepient(contact)" ><a role="menuitem" tabindex="-1" href="">{{contact.name}}</a></li>
+                                <li role="presentation" ng-repeat="contact in data.contacts" ng-click="toggleRecepient(contact)" >
+                                    <a class="menuitem active" tabindex="-1" href="">
+                                        {{contact.name}}
+                                        <span class="label label-default" ng-show="isSetToSend(contact)">Y</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </span>

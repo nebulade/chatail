@@ -42,6 +42,11 @@ app.use(express.static(__dirname + '/views'));
 app.use(router);
 
 router.post('/api/send', function (req, res) {
+    var to = [];
+
+    if (req.body.to instanceof Array) to = req.body.to;
+    else to.push(req.body.to);
+
     mail.send(config.me, req.body.to, config.me, 'Chat', req.body.message, function (error) {
         if (error) return res.send(500, 'Unable to send message');
         res.send(200, {});

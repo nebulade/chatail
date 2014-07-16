@@ -89,7 +89,7 @@ Mail.prototype.send = function (from, to, cc, subject, message, callback) {
 
     var mailOptions = {
         from: from,
-        to: to,
+        to: to.join(','),
         cc: cc,
         subject: subject,
         text: message
